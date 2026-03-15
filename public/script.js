@@ -1,6 +1,10 @@
+const socket = io();
+
 const form = document.getElementById("chat-form");
 const input = document.getElementById("user-input");
 const chatBox = document.getElementById("chat-box");
+
+let conversation = [];
 
 function appendMessage(sender, text) {
     const messageElement = document.createElement("div");
@@ -13,6 +17,10 @@ function appendMessage(sender, text) {
     chatBox.appendChild(clearDiv);
 
     chatBox.scrollTop = chatBox.scrollHeight;
+
+    // Add to conversation history
+    conversation.push({ role: sender === "user" ? "user" : "model", text });
+
     return messageElement;
 }
 
@@ -36,48 +44,52 @@ function appendLoading() {
     return loadingElement;
 }
 
-form.addEventListener("submit", async (e) => {
+form.addEventListener("submit", (e) => {
     e.preventDefault();
 
     const userMessage = input.value.trim();
-        if (!userMessage) {
-            return;
+    if (!userMessage) {
+        return;
     }
 
-  // 1. Add user's message to the chat box
-appendMessage("user", userMessage);
+    // 1. Add user's message to the chat box
+    appendMessage("user", userMessage);
 
-input.value = "";
-  // 2. Show a loading spinner
-const loadingElement = appendLoading();
-try {
-    // 3. Send the user's message to the backend API
-    const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: {
-        "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-        conversation: [{ role: "user", text: userMessage }],
-        }),
+    input.value = "";
+
+    // 2. Show a loading spinner
+    const loadingElement = appendLoading();
+
+    // 3. Send the user's message via socket
+    socket.emit('chat message', {
+        conversation: conversation
     });
-    if (!response.ok) {
-        throw new Error("Network response was not ok.");
-    }
-    
-    const data = await response.json();
-    const aiResponse = data.result;
-    
-    // 4. Replace loading with the AI's actual response
-    if (aiResponse) {
+
+    let aiResponse = '';
+
+    // Listen for chunks
+    const onChunk = (data) => {
+        aiResponse += data.chunk;
         loadingElement.innerHTML = aiResponse;
-    } else {
-        loadingElement.innerHTML = "Maaf, tidak ada respons yang diterima.";
-    }
-    } catch (error) {
-    console.error("Error fetching AI response:", error);
-    loadingElement.innerHTML = "Gagal mendapatkan respons dari server.";
-    } finally {
-    chatBox.scrollTop = chatBox.scrollHeight;
-    }
+    };
+
+    const onDone = (data) => {
+        loadingElement.innerHTML = data.full;
+        // Add bot response to conversation
+        conversation.push({ role: "model", text: data.full });
+        socket.off('chat chunk', onChunk);
+        socket.off('chat done', onDone);
+        socket.off('chat error', onError);
+    };
+
+    const onError = (data) => {
+        loadingElement.innerHTML = "Gagal mendapatkan respons dari server: " + data.error;
+        socket.off('chat chunk', onChunk);
+        socket.off('chat done', onDone);
+        socket.off('chat error', onError);
+    };
+
+    socket.on('chat chunk', onChunk);
+    socket.on('chat done', onDone);
+    socket.on('chat error', onError);
 });
