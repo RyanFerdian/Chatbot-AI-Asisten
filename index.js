@@ -46,7 +46,7 @@ io.on('connection', (socket) => {
                 parts: [{ text: msg.text }]
             }));
 
-            const response = await ai.models.generateContentStream({
+            const response = await ai.models.generateContent({
                 model: GEMINI_MODEL,
                 contents,
                 config: {
@@ -55,16 +55,8 @@ io.on('connection', (socket) => {
                 }
             });
 
-            let fullResponse = '';
-            for await (const chunk of response) {
-                if (chunk.text) {
-                    fullResponse += chunk.text;
-                    socket.emit('chat chunk', { chunk: chunk.text });
-                }
-            }
-
-            // Send end signal
-            socket.emit('chat done', { full: fullResponse });
+            const fullResponse = response.text;
+            socket.emit('chat response', { result: fullResponse });
         } catch (e) {
             console.error("Error processing chat:", e);
             socket.emit('chat error', { error: e.message });

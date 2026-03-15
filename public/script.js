@@ -65,31 +65,21 @@ form.addEventListener("submit", (e) => {
         conversation: conversation
     });
 
-    let aiResponse = '';
-
-    // Listen for chunks
-    const onChunk = (data) => {
-        aiResponse += data.chunk;
-        loadingElement.innerHTML = aiResponse;
-    };
-
-    const onDone = (data) => {
-        loadingElement.innerHTML = data.full;
+    // Listen for response
+    const onResponse = (data) => {
+        loadingElement.innerHTML = data.result;
         // Add bot response to conversation
-        conversation.push({ role: "model", text: data.full });
-        socket.off('chat chunk', onChunk);
-        socket.off('chat done', onDone);
+        conversation.push({ role: "model", text: data.result });
+        socket.off('chat response', onResponse);
         socket.off('chat error', onError);
     };
 
     const onError = (data) => {
         loadingElement.innerHTML = "Gagal mendapatkan respons dari server: " + data.error;
-        socket.off('chat chunk', onChunk);
-        socket.off('chat done', onDone);
+        socket.off('chat response', onResponse);
         socket.off('chat error', onError);
     };
 
-    socket.on('chat chunk', onChunk);
-    socket.on('chat done', onDone);
+    socket.on('chat response', onResponse);
     socket.on('chat error', onError);
 });
