@@ -37,7 +37,7 @@ io.on('connection', (socket) => {
 
             // Custom response for "hai"
             if (conversation.length === 1 && conversation[0].text.toLowerCase() === "hai") {
-                socket.emit('chat response', { result: "Asisten pribadi siap membantu, ada hal apa yang harus saya kerjakan?" });
+                socket.emit('chat response', { result: "Gemini Assistant siap membantu, ada hal apa yang harus saya kerjakan?" });
                 return;
             }
 
@@ -51,7 +51,7 @@ io.on('connection', (socket) => {
                 contents,
                 config: {
                     temperature: 0.9,
-                    systemInstruction: 'Jawab hanya menggunakan bahasa Indonesia. Jawab dalam teks biasa tanpa menggunakan simbol markdown seperti *, #, /, \\, |, dan simbol khusus lainnya.'
+                    systemInstruction: 'Jawab hanya menggunakan bahasa Indonesia. Jawab dalam teks biasa tanpa menggunakan simbol markdown seperti *, #, /, \\, |, dan simbol khusus lainnya. Tahun sekarang adalah 2026.'
                 }
             });
 
